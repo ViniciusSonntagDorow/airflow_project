@@ -1,4 +1,4 @@
-from airflow.decorators import dag
+from airflow.decorators import dag, task
 from datetime import datetime
 
 
@@ -9,7 +9,21 @@ from datetime import datetime
     tags=["agricultura", "sidra"],
 )
 def agricultura():
-    pass
+    @task
+    def extract_data():
+        pass
+
+    @task
+    def transform_data():
+        pass
+
+    @task
+    def load_data():
+        pass
+
+    data = extract_data()
+    transformed_data = transform_data(data)
+    load_data(transformed_data)
 
 
 agricultura()
