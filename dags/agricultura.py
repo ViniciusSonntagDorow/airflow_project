@@ -1,6 +1,20 @@
 from airflow.decorators import dag, task
 from datetime import datetime
+from include.extractors.sidra_extractor import SidraExtractor
+from include.loaders.minio_loader import MinioLoader
+import pandas as pd
+from include.helpers.constants import YEARS, AGRICULTURE_PRODUCTS
 
+
+agriculture_extractor = SidraExtractor(
+    table_code="5457",
+    variable="8331,216,214,215",
+    classifications_key="782"
+)
+
+agriculture_loader = MinioLoader(
+    bucket_name="agricultura"
+)
 
 @dag(
     start_date=datetime(2026, 1, 1),
@@ -9,21 +23,13 @@ from datetime import datetime
     tags=["agricultura", "sidra"],
 )
 def agricultura():
-    @task
-    def extract_data():
-        pass
+    @task(retries=2, retry_delay=10)
+    def extract_load_data(product: str, year: str) -> str:
+        df = agriculture_extractor.fetch_data(product, year)
+        object_name = f"{product}_{year}"
+        return agriculture_loader.upload_parquet(df, object_name)
 
-    @task
-    def transform_data():
-        pass
-
-    @task
-    def load_data():
-        pass
-
-    data = extract_data()
-    transformed_data = transform_data(data)
-    load_data(transformed_data)
+    extract_load_data.expand(product=AGRICULTURE_PRODUCTS, year=YEARS)
 
 
 agricultura()
