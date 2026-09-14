@@ -7,10 +7,10 @@ class PostgresManager:
     def __init__(
         self,
         table_name: str,
-        conn_id: str = "postgres",
-        schema: str | None = None,
-        if_exists: str = "append",
-        chunksize: int = 1000,
+        conn_id: str,
+        schema: str,
+        if_exists: str,
+        chunksize: int,
     ):
         self.table_name = table_name
         self.conn_id = conn_id
@@ -21,11 +21,11 @@ class PostgresManager:
         self.engine = self._create_engine()
 
     def _create_engine(self):
-        username = self.pg_conn.login or "postgres"
-        password = self.pg_conn.password or "postgres"
-        host = self.pg_conn.host or "postgres"
-        port = self.pg_conn.port or 5432
-        database = self.pg_conn.schema or self.pg_conn.extra_dejson.get("database") or "postgres"
+        username = self.pg_conn.login
+        password = self.pg_conn.password
+        host = self.pg_conn.host
+        port = self.pg_conn.port
+        database = self.pg_conn.schema
 
         return create_engine(
             f"postgresql://{username}:{password}@{host}:{port}/{database}",

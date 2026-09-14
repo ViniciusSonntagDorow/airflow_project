@@ -14,7 +14,7 @@ from include.helpers.constants import YEARS, AGRICULTURE_PRODUCTS
 )
 def agricultura():
     
-    @task(retries=2, retry_delay=10)
+    @task(retries=1, retry_delay=10)
     def raw_layer(product: str, year: str) -> str:
         agriculture_extractor = SidraExtractor(
             table_code="5457",
@@ -28,7 +28,7 @@ def agricultura():
         path = agriculture_loader.upload_parquet(df, object_name)
         return path
 
-    @task(retries=2, retry_delay=10)
+    @task(retries=1, retry_delay=10)
     def bronze_aggregate(paths: list[str]) -> str:
         agriculture_loader = MinioManager(bucket_name="agricultura")
         agriculture_postgres = PostgresManager(
@@ -36,6 +36,7 @@ def agricultura():
             conn_id="postgres",
             schema="public",
             if_exists="append",
+            chunksize=1000,
         )
         
         dfs = [agriculture_loader.get_parquet(path) for path in paths]
