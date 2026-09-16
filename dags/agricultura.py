@@ -10,9 +10,9 @@ from include.helpers.constants import YEARS, AGRICULTURE_PRODUCTS
     start_date=datetime(2026, 1, 1),
     schedule_interval="@monthly",
     catchup=False,
-    tags=["agricultura", "sidra"],
+    tags=["agriculture", "sidra"],
 )
-def agricultura():
+def agriculture():
     
     @task(retries=1, retry_delay=10)
     def raw_layer(product: str, year: str) -> str:
@@ -21,7 +21,7 @@ def agricultura():
             variable="8331,216,214,215",
             classifications_key="782"
         )
-        agriculture_loader = MinioManager(bucket_name="agricultura")
+        agriculture_loader = MinioManager(bucket_name="agriculture")
         
         df = agriculture_extractor.fetch_data(product, year)
         object_name = f"{product}_{year}"
@@ -29,12 +29,12 @@ def agricultura():
         return path
 
     @task(retries=1, retry_delay=10)
-    def bronze_aggregate(paths: list[str]) -> str:
-        agriculture_loader = MinioManager(bucket_name="agricultura")
+    def bronze_layer(paths: list[str]) -> str:
+        agriculture_loader = MinioManager(bucket_name="agriculture")
         agriculture_postgres = PostgresManager(
-            table_name="bronze_agricultura",
+            table_name="agriculture",
             conn_id="postgres",
-            schema="public",
+            schema="bronze",
             if_exists="append",
             chunksize=1000,
         )
@@ -43,7 +43,27 @@ def agricultura():
         agriculture_postgres.save_dataframes(dfs)
         return agriculture_postgres.table_name
 
-    paths = raw_layer.expand(product=AGRICULTURE_PRODUCTS, year=YEARS)
-    bronze_aggregate(paths)
+    # @task(retries=1, retry_delay=10)
+    # def silver_layer(table_name: str) -> str:
+    #     agriculture_postgres = PostgresManager(
+    #         table_name=table_name,
+    #         conn_id="postgres",
+    #         schema="public",
+    #         if_exists="replace",
+    #         chunksize=1000,
+    #     )
+        
+    #     df = pd.read_sql(f"SELECT * FROM {table_name}", agriculture_postgres.engine)
+    #     df["year"] = pd.to_datetime(df["year"], format="%Y")
+    #     df["product"] = df["product"].astype(str)
+        
+    #     silver_table_name = "silver_agriculture"
+    #     agriculture_postgres.table_name = silver_table_name
+    #     agriculture_postgres.save_dataframe(df)
+        
+    #     return silver_table_name
 
-agricultura()
+    paths = raw_layer.expand(product=AGRICULTURE_PRODUCTS, year=YEARS)
+    bronze_layer(paths)
+
+agriculture()

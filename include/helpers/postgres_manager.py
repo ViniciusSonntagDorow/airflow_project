@@ -54,3 +54,7 @@ class PostgresManager:
 
         combined = pd.concat(dfs, ignore_index=True)
         return self.save_dataframe(combined)
+
+    def read_dataframe(self) -> pd.DataFrame:
+        query = f"SELECT * FROM {self.schema}.{self.table_name}"
+        return pd.read_sql(query, self.engine)
